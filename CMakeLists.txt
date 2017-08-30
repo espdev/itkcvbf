@@ -4,10 +4,6 @@ project(itkcvbf)
 find_package(ITK 4.9 REQUIRED)
 include(${ITK_USE_FILE})
 
-if(NOT ITKVideoBridgeOpenCV_LOADED)
-  message(FATAL_ERROR "'ITKVideoBridgeOpenCV' module is required but it was not enabled in ITK '${ITK_DIR}'")
-endif()
-
 find_package(OpenCV 3.3 REQUIRED)
 
 add_library(itkcvbf INTERFACE)
