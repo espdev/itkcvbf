@@ -52,18 +52,20 @@ int main(int argc, char** argv)
   bilateral->SetDomainSigma(argDomainSigma.Get());
   bilateral->SetCpuForce(argCpuForce.Get());
 
+  itk::TimeProbe tp;
+  tp.Start();
+  
   try {
-    itk::TimeProbe tp;
-    tp.Start();
     bilateral->Update();
     tp.Stop();
-    std::cout << tp.GetMean() << std::endl;
   }
   catch (itk::ExceptionObject &err) {
     std::cerr << err << std::endl;
     return EXIT_FAILURE;
   }
   
+  std::cout << "Elapsed time: " << tp.GetMean() << " sec" << std::endl;
+
   auto imageWriter = itk::ImageFileWriter<ImageType>::New();
   imageWriter->SetFileName(argOutput.Get());
   imageWriter->SetInput(bilateral->GetOutput());
