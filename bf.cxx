@@ -57,13 +57,13 @@ int main(int argc, char** argv)
   
   try {
     bilateral->Update();
-    tp.Stop();
   }
   catch (itk::ExceptionObject &err) {
     std::cerr << err << std::endl;
     return EXIT_FAILURE;
   }
   
+  tp.Stop();
   std::cout << "Elapsed time: " << tp.GetMean() << " sec" << std::endl;
 
   auto imageWriter = itk::ImageFileWriter<ImageType>::New();
