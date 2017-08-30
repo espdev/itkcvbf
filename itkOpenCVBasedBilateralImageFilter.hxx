@@ -1,0 +1,80 @@
+#pragma once
+
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/cudaimgproc.hpp>
+
+#include "itkOpenCVBasedBilateralImageFilter.h"
+
+
+namespace itk
+{
+
+inline void _OpenCVBasedBilateralImageFilter<2U>::GenerateData()
+{
+  this->UpdateProgress(0.0);
+  this->AllocateOutputs();
+
+  ImageType *input = const_cast<ImageType *>(this->GetInput());
+  ImageType *output = this->GetOutput();
+
+  auto sz = input->GetLargestPossibleRegion().GetSize();
+
+  // OpenCV Mat as warpper over ITK images memory
+  cv::Mat src(sz[0], sz[1], CV_32F, input->GetBufferPointer());
+  cv::Mat dst(sz[0], sz[1], CV_32F, output->GetBufferPointer());
+
+  if (cv::cuda::getCudaEnabledDeviceCount() > 0 && !this->m_CpuForce) {
+    // GPU (CUDA) bilateral filtering
+    cv::cuda::GpuMat gpuSrc;
+    gpuSrc.upload(src);
+    cv::cuda::GpuMat gpuDst(sz[0], sz[1], CV_32F);
+
+    cv::cuda::bilateralFilter(gpuSrc, gpuDst, 0, this->m_RangeSigma, this->m_DomainSigma);
+    
+    gpuDst.download(dst);
+  }
+  else {
+    cv::bilateralFilter(src, dst, 0, this->m_RangeSigma, this->m_DomainSigma);
+  }
+
+  this->UpdateProgress(1.0);
+}
+
+template <unsigned Dimension>
+void _OpenCVBasedBilateralImageFilter<Dimension>::GenerateData()
+{
+  auto bilateral = BilateralImageFilter::New();
+  bilateral->SetRangeSigma(this->m_RangeSigma);
+  bilateral->SetDomainSigma(this->m_DomainSigma);
+  bilateral->SetCpuForce(this->m_CpuForce);
+
+  auto sliceBySlice = SliceBySliceImageFilter::New();
+  sliceBySlice->SetInput(this->GetInput());
+  sliceBySlice->SetFilter(bilateral);
+
+  sliceBySlice->Update();
+
+  this->GraftOutput(sliceBySlice->GetOutput());
+}
+
+template <typename TInputImage, typename TOutputImage>
+void OpenCVBasedBilateralImageFilter<TInputImage, TOutputImage>::GenerateData()
+{
+  auto castToInternal = CastToInternalImageFilter::New();
+  castToInternal->SetInput(this->GetInput());
+
+  auto bilateral = InternalBilateralImageFilter::New();
+  bilateral->SetInput(castToInternal->GetOutput());
+  bilateral->SetRangeSigma(m_RangeSigma);
+  bilateral->SetDomainSigma(m_DomainSigma);
+  bilateral->SetCpuForce(m_CpuForce);
+
+  auto castFromInternal = CastFromInternalImageFilter::New();
+  castFromInternal->SetInput(bilateral->GetOutput());
+  castFromInternal->Update();
+
+  this->GraftOutput(castFromInternal->GetOutput());
+}
+
+} // namespace itk
