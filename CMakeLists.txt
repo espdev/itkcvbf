@@ -11,6 +11,7 @@ add_library(itkcvbf INTERFACE)
 target_sources(itkcvbf INTERFACE
     ${CMAKE_SOURCE_DIR}/itkOpenCVBasedBilateralImageFilter.h
     ${CMAKE_SOURCE_DIR}/itkOpenCVBasedBilateralImageFilter.hxx
+    ${CMAKE_SOURCE_DIR}/itkProgressMonitorCommand.h
 )
 
 add_executable(bf bf.cxx)

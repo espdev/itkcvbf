@@ -4,10 +4,12 @@
 
 #include "args.hxx"
 
+#include "itkProgressMonitorCommand.h"
 #include "itkOpenCVBasedBilateralImageFilter.h"
 
 
 using ImageType = itk::Image<float, 4U>;
+
 
 
 int main(int argc, char** argv)
@@ -52,6 +54,9 @@ int main(int argc, char** argv)
   bilateral->SetDomainSigma(argDomainSigma.Get());
   bilateral->SetCpuForce(argCpuForce.Get());
 
+  auto progmon = itk::ProgressMonitorCommand::New();
+  bilateral->AddObserver(itk::ProgressEvent(), progmon);
+
   itk::TimeProbe tp;
   tp.Start();
   
@@ -64,7 +69,7 @@ int main(int argc, char** argv)
   }
   
   tp.Stop();
-  std::cout << "Elapsed time: " << tp.GetMean() << " sec" << std::endl;
+  std::cout << "\nElapsed time: " << tp.GetTotal() << " sec" << std::endl;
 
   auto imageWriter = itk::ImageFileWriter<ImageType>::New();
   imageWriter->SetFileName(argOutput.Get());

@@ -4,6 +4,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/cudaimgproc.hpp>
 
+#include <itkProgressAccumulator.h>
+
 #include "itkOpenCVBasedBilateralImageFilter.h"
 
 
@@ -52,6 +54,10 @@ void _OpenCVBasedBilateralImageFilter<Dimension>::GenerateData()
   auto sliceBySlice = SliceBySliceImageFilter::New();
   sliceBySlice->SetInput(this->GetInput());
   sliceBySlice->SetFilter(bilateral);
+  
+  auto progress = itk::ProgressAccumulator::New();
+  progress->SetMiniPipelineFilter(this);
+  progress->RegisterInternalFilter(sliceBySlice, 1.0);
 
   sliceBySlice->Update();
 
@@ -61,6 +67,8 @@ void _OpenCVBasedBilateralImageFilter<Dimension>::GenerateData()
 template <typename TInputImage, typename TOutputImage>
 void OpenCVBasedBilateralImageFilter<TInputImage, TOutputImage>::GenerateData()
 {
+  this->UpdateProgress(0.0);
+
   auto castToInternal = CastToInternalImageFilter::New();
   castToInternal->SetInput(this->GetInput());
 
@@ -69,6 +77,10 @@ void OpenCVBasedBilateralImageFilter<TInputImage, TOutputImage>::GenerateData()
   bilateral->SetRangeSigma(m_RangeSigma);
   bilateral->SetDomainSigma(m_DomainSigma);
   bilateral->SetCpuForce(m_CpuForce);
+
+  auto progress = itk::ProgressAccumulator::New();
+  progress->SetMiniPipelineFilter(this);
+  progress->RegisterInternalFilter(bilateral, 1.0);
 
   auto castFromInternal = CastFromInternalImageFilter::New();
   castFromInternal->SetInput(bilateral->GetOutput());
