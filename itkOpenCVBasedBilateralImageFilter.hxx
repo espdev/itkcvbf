@@ -23,14 +23,14 @@ inline void _OpenCVBasedBilateralImageFilter<2U>::GenerateData()
   auto sz = input->GetLargestPossibleRegion().GetSize();
 
   // OpenCV Mat as warpper over ITK images memory
-  cv::Mat src(sz[0], sz[1], CV_32F, input->GetBufferPointer());
-  cv::Mat dst(sz[0], sz[1], CV_32F, output->GetBufferPointer());
+  cv::Mat src(sz[1], sz[0], CV_32F, input->GetBufferPointer());
+  cv::Mat dst(sz[1], sz[0], CV_32F, output->GetBufferPointer());
 
   if (cv::cuda::getCudaEnabledDeviceCount() > 0 && !this->m_CpuForce) {
     // GPU (CUDA) bilateral filtering
     cv::cuda::GpuMat gpuSrc;
     gpuSrc.upload(src);
-    cv::cuda::GpuMat gpuDst(sz[0], sz[1], CV_32F);
+    cv::cuda::GpuMat gpuDst(sz[1], sz[0], CV_32F);
 
     cv::cuda::bilateralFilter(gpuSrc, gpuDst, 0, this->m_RangeSigma, this->m_DomainSigma);
     
