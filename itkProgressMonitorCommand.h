@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sstream>
-
 #include <itkCommand.h>
 #include <itkEventObject.h>
 #include <itkProcessObject.h>
