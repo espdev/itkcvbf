@@ -16,7 +16,7 @@ using PixelType = signed short;
 using ImageType = itk::Image<PixelType, Dimension>;
 
 auto reader = itk::ImageFileReader<ImageType>::New();
-reader->SetFileName("your_image_3d.nrrd")
+reader->SetFileName("your_image_3d.nrrd");
 
 auto bilateral = itk::OpenCVBasedBilateralImageFilter<ImageType>::New();
 bilateral->SetRangeSigma(15);
@@ -24,7 +24,7 @@ bilateral->SetDomainSigma(5);
 bilateral->SetInput(reader->GetOutput());
 
 auto writer = itk::ImageFileWriter<ImageType>::New();
-writer->SetFileName("your_image_3d_bf.nrrd")
+writer->SetFileName("your_image_3d_bf.nrrd");
 writer->SetInput(bilateral->GetOutput());
 
 try {
