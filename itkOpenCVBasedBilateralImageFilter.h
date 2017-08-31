@@ -16,11 +16,17 @@ class _OpenCVBasedBilateralImageFilterBase :
 public:
   itkSetMacro(RangeSigma, float);
   itkSetMacro(DomainSigma, float);
+  itkSetMacro(Correction, bool);
+  itkSetMacro(CorrectionRangeSigma, float);
+  itkSetMacro(CorrectionDomainSigma, float);
   itkSetMacro(CpuForce, bool);
 
 protected:
   float m_RangeSigma = 0.0;
   float m_DomainSigma = 0.0;
+  bool m_Correction = false;
+  float m_CorrectionRangeSigma = 0.0;
+  float m_CorrectionDomainSigma = 0.0;
   bool m_CpuForce = false;
 };
 
@@ -91,8 +97,19 @@ public:
   itkSetMacro(DomainSigma, float);
   itkGetMacro(DomainSigma, float);
 
+  itkSetMacro(Correction, bool);
+  itkGetMacro(Correction, bool);
+  itkBooleanMacro(Correction);
+
+  itkSetMacro(CorrectionRangeSigma, float);
+  itkGetMacro(CorrectionRangeSigma, float);
+
+  itkSetMacro(CorrectionDomainSigma, float);
+  itkGetMacro(CorrectionDomainSigma, float);
+
   itkSetMacro(CpuForce, bool);
   itkGetMacro(CpuForce, bool);
+  itkBooleanMacro(CpuForce);
 
 protected:
   using InternalImageType = itk::Image<float, ImageDimension>;
@@ -109,6 +126,11 @@ protected:
 
   float m_RangeSigma = 10.0;
   float m_DomainSigma = 5.0;
+
+  bool m_Correction = false;
+  float m_CorrectionRangeSigma = 8;
+  float m_CorrectionDomainSigma = 2;
+
   bool m_CpuForce = false;
 
 private:

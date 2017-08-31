@@ -34,10 +34,18 @@ inline void _OpenCVBasedBilateralImageFilter<2U>::GenerateData()
 
     cv::cuda::bilateralFilter(gpuSrc, gpuDst, 0, this->m_RangeSigma, this->m_DomainSigma);
     
+    if (this->m_Correction) {
+      cv::cuda::bilateralFilter(gpuDst.clone(), gpuDst, 0, this->m_CorrectionRangeSigma, this->m_CorrectionDomainSigma);
+    }
+
     gpuDst.download(dst);
   }
   else {
     cv::bilateralFilter(src, dst, 0, this->m_RangeSigma, this->m_DomainSigma);
+
+    if (this->m_Correction) {
+      cv::bilateralFilter(dst.clone(), dst, 0, this->m_CorrectionRangeSigma, this->m_CorrectionDomainSigma);
+    }
   }
 
   this->UpdateProgress(1.0);
@@ -49,6 +57,9 @@ void _OpenCVBasedBilateralImageFilter<Dimension>::GenerateData()
   auto bilateral = BilateralImageFilter::New();
   bilateral->SetRangeSigma(this->m_RangeSigma);
   bilateral->SetDomainSigma(this->m_DomainSigma);
+  bilateral->SetCorrection(this->m_Correction);
+  bilateral->SetCorrectionRangeSigma(this->m_CorrectionRangeSigma);
+  bilateral->SetCorrectionDomainSigma(this->m_CorrectionDomainSigma);
   bilateral->SetCpuForce(this->m_CpuForce);
 
   auto sliceBySlice = SliceBySliceImageFilter::New();
@@ -76,6 +87,9 @@ void OpenCVBasedBilateralImageFilter<TInputImage, TOutputImage>::GenerateData()
   bilateral->SetInput(castToInternal->GetOutput());
   bilateral->SetRangeSigma(m_RangeSigma);
   bilateral->SetDomainSigma(m_DomainSigma);
+  bilateral->SetCorrection(m_Correction);
+  bilateral->SetCorrectionRangeSigma(m_CorrectionRangeSigma);
+  bilateral->SetCorrectionDomainSigma(m_CorrectionDomainSigma);
   bilateral->SetCpuForce(m_CpuForce);
 
   auto progress = itk::ProgressAccumulator::New();

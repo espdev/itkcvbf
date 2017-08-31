@@ -25,6 +25,10 @@ int main(int argc, char** argv)
   args::ValueFlag<float> argRangeSigma(parser, "float", "Range sigma value", {'r', "range-sigma"}, 10.f);
   args::ValueFlag<float> argDomainSigma(parser, "float", "Domain sigma value", {'d', "domain-sigma"}, 5.f);
 
+  args::Flag argCorrecion(parser, "correction", "Artifacts correction", {'C', "correction"});
+  args::ValueFlag<float> argCorrectionRangeSigma(parser, "float", "Correction range sigma value", {'R', "corr-range-sigma"}, 8.f);
+  args::ValueFlag<float> argCorrectionDomainSigma(parser, "float", "Correction domain sigma value", {'D', "corr-domain-sigma"}, 2.f);
+
   args::Flag argCpuForce(parser, "cpu", "Forced using CPU", {'c', "cpu"});
 
   try {
@@ -52,6 +56,9 @@ int main(int argc, char** argv)
   bilateral->SetInput(imageReader->GetOutput());
   bilateral->SetRangeSigma(argRangeSigma.Get());
   bilateral->SetDomainSigma(argDomainSigma.Get());
+  bilateral->SetCorrection(argCorrecion.Get());
+  bilateral->SetCorrectionRangeSigma(argCorrectionRangeSigma.Get());
+  bilateral->SetCorrectionDomainSigma(argCorrectionDomainSigma.Get());
   bilateral->SetCpuForce(argCpuForce.Get());
 
   auto progmon = itk::ProgressMonitorCommand::New();
