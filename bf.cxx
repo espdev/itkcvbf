@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include <itkTimeProbe.h>
@@ -8,8 +10,60 @@
 #include "itkOpenCVBasedBilateralImageFilter.h"
 
 
-using ImageType = itk::Image<float, 4U>;
+struct Options
+{
+  const std::string& input; 
+  const std::string& output;
+  float rsigma; 
+  float dsigma; 
+  bool corr; 
+  float crsigma;
+  float cdsigma; 
+  bool use_cpu;
+};
 
+
+template<unsigned int Dimension>
+bool bilateral(Options opt)
+{
+  using ImageType = itk::Image<float, Dimension>;
+
+  auto imageReader = itk::ImageFileReader<ImageType>::New();
+  imageReader->SetFileName(opt.input);
+
+  auto bilateral = itk::OpenCVBasedBilateralImageFilter<ImageType>::New();
+  bilateral->SetInput(imageReader->GetOutput());
+  bilateral->SetRangeSigma(opt.rsigma);
+  bilateral->SetDomainSigma(opt.dsigma);
+  bilateral->SetCorrection(opt.corr);
+  bilateral->SetCorrectionRangeSigma(opt.crsigma);
+  bilateral->SetCorrectionDomainSigma(opt.cdsigma);
+  bilateral->SetCpuForce(opt.use_cpu);
+
+  auto progmon = itk::ProgressMonitorCommand::New();
+  bilateral->AddObserver(itk::ProgressEvent(), progmon);
+
+  itk::TimeProbe tp;
+  tp.Start();
+
+  try {
+    bilateral->Update();
+  }
+  catch (itk::ExceptionObject &err) {
+    std::cerr << err << std::endl;
+    return false;
+  }
+
+  tp.Stop();
+  std::cout << "\nElapsed time: " << tp.GetTotal() << " sec" << std::endl;
+
+  auto imageWriter = itk::ImageFileWriter<ImageType>::New();
+  imageWriter->SetFileName(opt.output);
+  imageWriter->SetInput(bilateral->GetOutput());
+  imageWriter->Update();
+
+  return true;
+}
 
 
 int main(int argc, char** argv)
@@ -19,17 +73,19 @@ int main(int argc, char** argv)
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 
   args::Group group(parser, "Required arguments:", args::Group::Validators::All);
-  args::ValueFlag<std::string> argInput(group, "string", "Input image file name", {'i', "input"});
-  args::ValueFlag<std::string> argOutput(group, "string", "Output image file name", {'o', "output"});
+  args::ValueFlag<std::string> argInput(group, "INPUT", "Input image file name", {'i', "input"});
+  args::ValueFlag<std::string> argOutput(group, "OUTPUT", "Output image file name", {'o', "output"});
+
+  args::ValueFlag<unsigned int> argDimension(parser, "DIM", "Image dimension 2/[3]/4", {'d', "dimension"}, 3U);
   
-  args::ValueFlag<float> argRangeSigma(parser, "float", "Range sigma value", {'r', "range-sigma"}, 10.f);
-  args::ValueFlag<float> argDomainSigma(parser, "float", "Domain sigma value", {'d', "domain-sigma"}, 5.f);
+  args::ValueFlag<float> argRangeSigma(parser, "RANGE_SIGMA", "Range sigma value", {'r', "range-sigma"}, 10.f);
+  args::ValueFlag<float> argDomainSigma(parser, "DOMAIN_SIGMA", "Domain sigma value", {'d', "domain-sigma"}, 5.f);
 
-  args::Flag argCorrecion(parser, "correction", "Artifacts correction", {'C', "correction"});
-  args::ValueFlag<float> argCorrectionRangeSigma(parser, "float", "Correction range sigma value", {'R', "corr-range-sigma"}, 8.f);
-  args::ValueFlag<float> argCorrectionDomainSigma(parser, "float", "Correction domain sigma value", {'D', "corr-domain-sigma"}, 2.f);
+  args::Flag argCorrecion(parser, "CORRECTION", "Artifacts correction", {'C', "correction"});
+  args::ValueFlag<float> argCorrectionRangeSigma(parser, "CORR_RANGE_SIGMA", "Correction range sigma value", {'R', "corr-range-sigma"}, 8.f);
+  args::ValueFlag<float> argCorrectionDomainSigma(parser, "CORR_DOMAIN_SIGMA", "Correction domain sigma value", {'D', "corr-domain-sigma"}, 2.f);
 
-  args::Flag argCpuForce(parser, "cpu", "Forced using CPU", {'c', "cpu"});
+  args::Flag argCpuForce(parser, "CPU_FORCE", "Forced using CPU", {'c', "cpu"});
 
   try {
     parser.ParseCLI(argc, argv);
@@ -49,39 +105,38 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  auto imageReader = itk::ImageFileReader<ImageType>::New();
-  imageReader->SetFileName(argInput.Get());
+  Options options = {
+    argInput.Get(),
+    argOutput.Get(),
+    argRangeSigma.Get(),
+    argDomainSigma.Get(),
+    argCorrecion,
+    argCorrectionRangeSigma.Get(),
+    argCorrectionDomainSigma.Get(),
+    argCpuForce
+  };
 
-  auto bilateral = itk::OpenCVBasedBilateralImageFilter<ImageType>::New();
-  bilateral->SetInput(imageReader->GetOutput());
-  bilateral->SetRangeSigma(argRangeSigma.Get());
-  bilateral->SetDomainSigma(argDomainSigma.Get());
-  bilateral->SetCorrection(argCorrecion.Get());
-  bilateral->SetCorrectionRangeSigma(argCorrectionRangeSigma.Get());
-  bilateral->SetCorrectionDomainSigma(argCorrectionDomainSigma.Get());
-  bilateral->SetCpuForce(argCpuForce.Get());
+  bool result = false;
 
-  auto progmon = itk::ProgressMonitorCommand::New();
-  bilateral->AddObserver(itk::ProgressEvent(), progmon);
-
-  itk::TimeProbe tp;
-  tp.Start();
-  
-  try {
-    bilateral->Update();
+  switch (argDimension.Get())
+  {
+  case 2:
+    result = bilateral<2>(options);
+    break;
+  case 3:
+    result = bilateral<3>(options);
+    break;
+  case 4:
+    result = bilateral<4>(options);
+    break;
+  default:
+    std::cerr << "Invalid image dimension " << argDimension.Get() << std::endl;
+    result = false;
   }
-  catch (itk::ExceptionObject &err) {
-    std::cerr << err << std::endl;
+
+  if (!result) {
     return EXIT_FAILURE;
   }
-  
-  tp.Stop();
-  std::cout << "\nElapsed time: " << tp.GetTotal() << " sec" << std::endl;
-
-  auto imageWriter = itk::ImageFileWriter<ImageType>::New();
-  imageWriter->SetFileName(argOutput.Get());
-  imageWriter->SetInput(bilateral->GetOutput());
-  imageWriter->Update();
 
   return EXIT_SUCCESS;
 }
